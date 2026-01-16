@@ -20,6 +20,10 @@ Then, open `http://localhost:3000`.
 
 ## Implementation notes
 
+On the wallet flow, the app generates an ed25519 keypair using Solana's `Keypair.generate()` API and creates the public/private keys. After that, the user is routed to a private dashboard that reads the stored keypair, shows balances, and acts as the main stage for their wallet actions.
+
+Since this is set up for devnet by default, you fund the new wallet by airdropping SOL from the Solana faucet, then you can send SOL to another address or trade SOL for USDC. The trade quote in the dashboard uses Orca on devnet to fetch pool pricing and calculate the estimated USDC output before executing the swap.
+
 Here are a few implementation/design decisions I made:
 
 - I chose to use a next.js framework for its simple structure and App Router which makes building the frontend much easier.
