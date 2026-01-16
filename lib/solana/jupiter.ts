@@ -5,14 +5,18 @@ import {
   PublicKey,
 } from "@solana/web3.js";
 import { connection } from "./connection";
+import { getOrcaQuote, executeOrcaSwap, DEVNET_USDC_MINT } from "./orca";
 
 const TOKEN_PROGRAM_ID = new PublicKey(
   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 );
 
 const USDC_MINT_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const USDC_MINT_DEVNET = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr";
+const USDC_MINT_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
 const SOL_MINT = "So11111111111111111111111111111111111111112";
+
+const JUPITER_API_BASE =
+  process.env.NEXT_PUBLIC_JUPITER_API_BASE || "https://lite-api.jup.ag/swap/v1";
 
 const getUSDCMint = (): string => {
   const endpoint = (connection as any)._rpcEndpoint || "";
@@ -42,23 +46,66 @@ export const getSwapQuote = async (
   inputMint: string = SOL_MINT,
   outputMint?: string
 ): Promise<SwapQuote | null> => {
+  const endpoint = (connection as any)._rpcEndpoint || "";
+  const isDevnet = /devnet/i.test(endpoint);
+
+  if (isDevnet) {
+    const inputMintPubkey = new PublicKey(inputMint);
+    const outputMintPubkey = outputMint
+      ? new PublicKey(outputMint)
+      : DEVNET_USDC_MINT;
+
+    const orcaQuote = await getOrcaQuote(
+      inputAmount,
+      inputMintPubkey,
+      outputMintPubkey
+    );
+
+    if (!orcaQuote) {
+      return null;
+    }
+
+    return {
+      inputMint,
+      outputMint: outputMintPubkey.toString(),
+      inputAmount: orcaQuote.estimatedAmountIn,
+      outputAmount: orcaQuote.estimatedAmountOut,
+      priceImpactPct: "0",
+      routePlan: [],
+    };
+  }
+
   const usdcMint = outputMint || getUSDCMint();
   try {
     const inputLamports = Math.floor(inputAmount * 1e9);
+
+    if (inputLamports <= 0) {
+      console.error("Invalid amount: must be greater than 0");
+      return null;
+    }
 
     const params = new URLSearchParams({
       inputMint,
       outputMint: usdcMint,
       amount: inputLamports.toString(),
       slippageBps: "50",
+      swapMode: "ExactIn",
     });
 
     const response = await fetch(
-      `https://quote-api.jup.ag/v6/quote?${params.toString()}`
+      `${JUPITER_API_BASE}/quote?${params.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      }
     );
 
     if (!response.ok) {
-      throw new Error(`Quote API error: ${response.statusText}`);
+      const errorText = await response.text().catch(() => response.statusText);
+      throw new Error(`Quote API error: ${response.status} ${errorText}`);
     }
 
     const quote = await response.json();
@@ -75,6 +122,22 @@ export const executeSwap = async (
   inputMint: string = SOL_MINT,
   outputMint?: string
 ): Promise<{ success: boolean; signature?: string; error?: string }> => {
+  const endpoint = (connection as any)._rpcEndpoint || "";
+  const isDevnet = /devnet/i.test(endpoint);
+
+  if (isDevnet) {
+    const inputMintPubkey = new PublicKey(inputMint);
+    const outputMintPubkey = outputMint
+      ? new PublicKey(outputMint)
+      : DEVNET_USDC_MINT;
+    return await executeOrcaSwap(
+      keypair,
+      inputAmount,
+      inputMintPubkey,
+      outputMintPubkey
+    );
+  }
+
   const usdcMint = outputMint || getUSDCMint();
   try {
     const balanceLamports = await connection.getBalance(keypair.publicKey);
@@ -100,7 +163,7 @@ export const executeSwap = async (
       };
     }
 
-    const swapResponse = await fetch("https://quote-api.jup.ag/v6/swap", {
+    const swapResponse = await fetch(`${JUPITER_API_BASE}/swap`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

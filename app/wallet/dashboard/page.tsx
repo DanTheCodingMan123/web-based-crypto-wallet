@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/lib/crypto/WalletContext";
-import { getBalance } from "@/lib/solana/connection";
-import { sendSOL } from "@/lib/solana/connection";
+import { getBalance, sendSOL, connection } from "@/lib/solana/connection";
 import { reconstructKeypair } from "@/lib/crypto/keypair";
 import { executeSwap, getUSDCBalance, getSwapQuote } from "@/lib/solana/jupiter";
 import { useState, useEffect } from "react";
@@ -23,7 +22,6 @@ export default function WalletDashboard() {
      const [loading, setLoading] = useState(true);
      const [sending, setSending] = useState(false);
      const [trading, setTrading] = useState(false);
-     const [error, setError] = useState<string | null>(null);
 
      useEffect(() => {
           if (!walletKeys) router.push("/");
@@ -69,6 +67,7 @@ export default function WalletDashboard() {
                try {
                     const quote = await getSwapQuote(amountNum);
                     if (quote) {
+
                          const usdcAmount = parseFloat(quote.outputAmount) / 1e6;
                          setEstimatedUsdc(usdcAmount);
                     } else {
@@ -95,24 +94,13 @@ export default function WalletDashboard() {
      };
 
      const handleSend = async () => {
-          setError(null);
-
-          if (!recipient.trim()) {
-               setError("Please enter a recipient address");
-               return;
-          }
-
-          if (!amount || parseFloat(amount) <= 0) {
-               setError("Please enter a valid amount");
+          if (!recipient.trim() || !amount || parseFloat(amount) <= 0) {
                return;
           }
 
           const amountNum = parseFloat(amount);
 
           if (balance === null || amountNum > balance) {
-               setError(
-                    `Insufficient balance. You have ${balance?.toFixed(2) || "0"} SOL but trying to send ${amount} SOL`
-               );
                return;
           }
 
@@ -134,30 +122,21 @@ export default function WalletDashboard() {
                     ]);
                     setBalance(newBalance);
                     setUsdcBalance(newUsdcBalance);
-               } else {
-                    setError(result.error || "Failed to send transaction");
                }
           } catch (err) {
-               setError(err instanceof Error ? err.message : "Unknown error occurred");
           } finally {
                setSending(false);
           }
      };
 
      const handleTrade = async () => {
-          setError(null);
-
           if (!tradeAmount || parseFloat(tradeAmount) <= 0) {
-               setError("Please enter a valid amount");
                return;
           }
 
           const amountNum = parseFloat(tradeAmount);
 
           if (balance === null || amountNum > balance) {
-               setError(
-                    `Insufficient balance. You have ${balance?.toFixed(2) || "0"} SOL but trying to trade ${tradeAmount} SOL`
-               );
                return;
           }
 
@@ -178,11 +157,9 @@ export default function WalletDashboard() {
                     ]);
                     setBalance(newBalance);
                     setUsdcBalance(newUsdcBalance);
-               } else {
-                    setError(result.error || "Failed to execute trade");
                }
           } catch (err) {
-               setError(err instanceof Error ? err.message : "Unknown error occurred");
+               // Silently handle errors
           } finally {
                setTrading(false);
           }
@@ -260,19 +237,12 @@ export default function WalletDashboard() {
                               <button
                                    onClick={() => {
                                         setMode("view");
-                                        setError(null);
                                    }}
                                    className="text-gray-900 font-semibold hover:text-gray-600"
                               >
                                    ← Back
                               </button>
                               <h2 className="text-3xl font-bold text-gray-900">Send Tokens</h2>
-
-                              {error && (
-                                   <div className="p-4 rounded-lg bg-red-50 border border-red-300">
-                                        <p className="text-red-900 text-sm">{error}</p>
-                                   </div>
-                              )}
 
                               <div className="space-y-4">
                                    <input
@@ -307,19 +277,12 @@ export default function WalletDashboard() {
                               <button
                                    onClick={() => {
                                         setMode("view");
-                                        setError(null);
                                    }}
                                    className="text-gray-900 font-semibold hover:text-gray-600"
                               >
                                    ← Back
                               </button>
                               <h2 className="text-3xl font-bold text-gray-900">Trade SOL for USDC</h2>
-
-                              {error && (
-                                   <div className="p-4 rounded-lg bg-red-50 border border-red-300">
-                                        <p className="text-red-900 text-sm">{error}</p>
-                                   </div>
-                              )}
 
                               <div className="space-y-4">
                                    <div>
