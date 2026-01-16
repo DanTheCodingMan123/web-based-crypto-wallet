@@ -5,18 +5,24 @@ import { useWallet } from "@/lib/crypto/WalletContext";
 import { getBalance } from "@/lib/solana/connection";
 import { sendSOL } from "@/lib/solana/connection";
 import { reconstructKeypair } from "@/lib/crypto/keypair";
+import { executeSwap, getUSDCBalance, getSwapQuote } from "@/lib/solana/jupiter";
 import { useState, useEffect } from "react";
 
 export default function WalletDashboard() {
      const router = useRouter();
      const { walletKeys } = useWallet();
-     const [mode, setMode] = useState<"view" | "send" | "receive">("view");
+     const [mode, setMode] = useState<"view" | "send" | "receive" | "trade">("view");
      const [copied, setCopied] = useState(false);
      const [recipient, setRecipient] = useState("");
      const [amount, setAmount] = useState("");
+     const [tradeAmount, setTradeAmount] = useState("");
      const [balance, setBalance] = useState<number | null>(null);
+     const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+     const [estimatedUsdc, setEstimatedUsdc] = useState<number | null>(null);
+     const [loadingQuote, setLoadingQuote] = useState(false);
      const [loading, setLoading] = useState(true);
      const [sending, setSending] = useState(false);
+     const [trading, setTrading] = useState(false);
      const [error, setError] = useState<string | null>(null);
 
      useEffect(() => {
@@ -24,19 +30,61 @@ export default function WalletDashboard() {
      }, [walletKeys, router]);
 
      useEffect(() => {
-          const fetchBalance = async () => {
+          const fetchBalances = async () => {
                if (!walletKeys) return;
                setLoading(true);
-               const bal = await getBalance(walletKeys.publicKey);
-               setBalance(bal);
+               const [solBal, usdcBal] = await Promise.all([
+                    getBalance(walletKeys.publicKey),
+                    getUSDCBalance(walletKeys.publicKey),
+               ]);
+               setBalance(solBal);
+               setUsdcBalance(usdcBal);
                setLoading(false);
           };
 
-          fetchBalance();
-          // Refresh every 15 seconds
-          const interval = setInterval(fetchBalance, 15000);
+          fetchBalances();
+          const interval = setInterval(fetchBalances, 15000);
           return () => clearInterval(interval);
      }, [walletKeys]);
+
+     useEffect(() => {
+          const fetchQuote = async () => {
+               if (!tradeAmount || !walletKeys) {
+                    setEstimatedUsdc(null);
+                    return;
+               }
+
+               const amountNum = parseFloat(tradeAmount);
+               if (amountNum <= 0 || isNaN(amountNum)) {
+                    setEstimatedUsdc(null);
+                    return;
+               }
+
+               if (balance !== null && amountNum > balance) {
+                    setEstimatedUsdc(null);
+                    return;
+               }
+
+               setLoadingQuote(true);
+               try {
+                    const quote = await getSwapQuote(amountNum);
+                    if (quote) {
+                         const usdcAmount = parseFloat(quote.outputAmount) / 1e6;
+                         setEstimatedUsdc(usdcAmount);
+                    } else {
+                         setEstimatedUsdc(null);
+                    }
+               } catch (error) {
+                    console.error("Error fetching quote:", error);
+                    setEstimatedUsdc(null);
+               } finally {
+                    setLoadingQuote(false);
+               }
+          };
+
+          const timeoutId = setTimeout(fetchQuote, 500);
+          return () => clearTimeout(timeoutId);
+     }, [tradeAmount, balance, walletKeys]);
 
      if (!walletKeys) return null;
 
@@ -49,7 +97,6 @@ export default function WalletDashboard() {
      const handleSend = async () => {
           setError(null);
 
-          // Validation
           if (!recipient.trim()) {
                setError("Please enter a recipient address");
                return;
@@ -62,7 +109,6 @@ export default function WalletDashboard() {
 
           const amountNum = parseFloat(amount);
 
-          // Check balance
           if (balance === null || amountNum > balance) {
                setError(
                     `Insufficient balance. You have ${balance?.toFixed(2) || "0"} SOL but trying to send ${amount} SOL`
@@ -73,10 +119,8 @@ export default function WalletDashboard() {
           try {
                setSending(true);
 
-               // Reconstruct keypair from stored data
                const keypair = reconstructKeypair(walletKeys.keypairData);
 
-               // Send SOL
                const result = await sendSOL(keypair, recipient, amountNum);
 
                if (result.success) {
@@ -84,9 +128,12 @@ export default function WalletDashboard() {
                     setRecipient("");
                     setAmount("");
                     setMode("view");
-                    // Refresh balance
-                    const newBalance = await getBalance(walletKeys.publicKey);
+                    const [newBalance, newUsdcBalance] = await Promise.all([
+                         getBalance(walletKeys.publicKey),
+                         getUSDCBalance(walletKeys.publicKey),
+                    ]);
                     setBalance(newBalance);
+                    setUsdcBalance(newUsdcBalance);
                } else {
                     setError(result.error || "Failed to send transaction");
                }
@@ -97,13 +144,57 @@ export default function WalletDashboard() {
           }
      };
 
+     const handleTrade = async () => {
+          setError(null);
+
+          if (!tradeAmount || parseFloat(tradeAmount) <= 0) {
+               setError("Please enter a valid amount");
+               return;
+          }
+
+          const amountNum = parseFloat(tradeAmount);
+
+          if (balance === null || amountNum > balance) {
+               setError(
+                    `Insufficient balance. You have ${balance?.toFixed(2) || "0"} SOL but trying to trade ${tradeAmount} SOL`
+               );
+               return;
+          }
+
+          try {
+               setTrading(true);
+
+               const keypair = reconstructKeypair(walletKeys.keypairData);
+
+               const result = await executeSwap(keypair, amountNum);
+
+               if (result.success) {
+                    alert(`✓ Trade successful!\nSignature: ${result.signature}`);
+                    setTradeAmount("");
+                    setMode("view");
+                    const [newBalance, newUsdcBalance] = await Promise.all([
+                         getBalance(walletKeys.publicKey),
+                         getUSDCBalance(walletKeys.publicKey),
+                    ]);
+                    setBalance(newBalance);
+                    setUsdcBalance(newUsdcBalance);
+               } else {
+                    setError(result.error || "Failed to execute trade");
+               }
+          } catch (err) {
+               setError(err instanceof Error ? err.message : "Unknown error occurred");
+          } finally {
+               setTrading(false);
+          }
+     };
+
      const shortAddress = walletKeys.publicKey.slice(0, 8) + "..." + walletKeys.publicKey.slice(-8);
 
      return (
           <div className="min-h-screen bg-white">
                <header className="border-b border-gray-200 px-4 py-4">
                     <div className="max-w-4xl mx-auto flex justify-between items-center">
-                         <h1 className="text-2xl font-bold text-gray-900">Solana Wallet</h1>
+                         <h1 className="text-2xl font-bold text-gray-900">Dan's Solana Wallet</h1>
                          <a href="/" className="px-4 py-2 rounded border border-gray-900 text-gray-900 hover:bg-gray-50 transition-colors">
                               Exit
                          </a>
@@ -113,7 +204,6 @@ export default function WalletDashboard() {
                <div className="max-w-2xl mx-auto px-4 py-12">
                     {mode === "view" && (
                          <div className="space-y-8">
-                              {/* Balance Display */}
                               <div className="text-center">
                                    <p className="text-gray-600 mb-2">Total Balance</p>
                                    <p className="text-7xl font-bold text-gray-900 mb-2">
@@ -122,7 +212,14 @@ export default function WalletDashboard() {
                                    <p className="text-2xl text-gray-600">SOL</p>
                               </div>
 
-                              {/* Wallet Address */}
+                              <div className="text-center">
+                                   <p className="text-gray-600 mb-2">USDC Balance</p>
+                                   <p className="text-4xl font-bold text-gray-900 mb-2">
+                                        {loading ? "..." : usdcBalance?.toFixed(2) || "0.00"}
+                                   </p>
+                                   <p className="text-xl text-gray-600">USDC</p>
+                              </div>
+
                               <div className="bg-white p-6 rounded-2xl border border-gray-300">
                                    <p className="text-sm text-gray-600 mb-3">Wallet Address</p>
                                    <p className="font-mono text-sm text-gray-900 mb-4 break-all">{walletKeys.publicKey}</p>
@@ -134,13 +231,18 @@ export default function WalletDashboard() {
                                    </button>
                               </div>
 
-                              {/* Action Buttons */}
-                              <div className="grid grid-cols-2 gap-4">
+                              <div className="grid grid-cols-3 gap-4">
                                    <button
                                         onClick={() => setMode("send")}
                                         className="px-6 py-3 rounded-lg border border-gray-900 text-gray-900 font-semibold hover:bg-gray-50 transition-colors"
                                    >
                                         Send
+                                   </button>
+                                   <button
+                                        onClick={() => setMode("trade")}
+                                        className="px-6 py-3 rounded-lg border border-gray-900 text-gray-900 font-semibold hover:bg-gray-50 transition-colors"
+                                   >
+                                        Trade
                                    </button>
                                    <button
                                         onClick={() => setMode("receive")}
@@ -195,6 +297,67 @@ export default function WalletDashboard() {
                                         className="w-full px-6 py-3 rounded-lg border border-gray-900 text-gray-900 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                    >
                                         {sending ? "Sending..." : "Send"}
+                                   </button>
+                              </div>
+                         </div>
+                    )}
+
+                    {mode === "trade" && (
+                         <div className="space-y-6">
+                              <button
+                                   onClick={() => {
+                                        setMode("view");
+                                        setError(null);
+                                   }}
+                                   className="text-gray-900 font-semibold hover:text-gray-600"
+                              >
+                                   ← Back
+                              </button>
+                              <h2 className="text-3xl font-bold text-gray-900">Trade SOL for USDC</h2>
+
+                              {error && (
+                                   <div className="p-4 rounded-lg bg-red-50 border border-red-300">
+                                        <p className="text-red-900 text-sm">{error}</p>
+                                   </div>
+                              )}
+
+                              <div className="space-y-4">
+                                   <div>
+                                        <label className="block text-sm text-gray-600 mb-2">
+                                             Amount to trade (SOL)
+                                        </label>
+                                        <input
+                                             type="number"
+                                             placeholder="0.00"
+                                             value={tradeAmount}
+                                             onChange={(e) => setTradeAmount(e.target.value)}
+                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-gray-900"
+                                             disabled={trading}
+                                             step="0.01"
+                                             min="0"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                             Available: {balance?.toFixed(4) || "0.00"} SOL
+                                        </p>
+                                   </div>
+                                   <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                        <p className="text-sm text-gray-600 mb-1">You will receive approximately:</p>
+                                        <p className="text-lg font-semibold text-gray-900">
+                                             {loadingQuote
+                                                  ? "Calculating..."
+                                                  : estimatedUsdc !== null
+                                                       ? estimatedUsdc.toFixed(2)
+                                                       : "0.00"}{" "}
+                                             USDC
+                                        </p>
+
+                                   </div>
+                                   <button
+                                        onClick={handleTrade}
+                                        disabled={trading}
+                                        className="w-full px-6 py-3 rounded-lg border border-gray-900 text-gray-900 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                   >
+                                        {trading ? "Trading..." : "Trade SOL for USDC"}
                                    </button>
                               </div>
                          </div>

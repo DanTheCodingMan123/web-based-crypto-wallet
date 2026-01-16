@@ -6,10 +6,6 @@ export interface WalletKeys {
   keypairData: number[];
 }
 
-/**
- * Generates a new ed25519 keypair using Solana's Keypair.generate()
- * The keypair uses the ed25519 cryptographic algorithm
- */
 export const generateNewKeypair = (): WalletKeys => {
   const keypair = Keypair.generate();
 
@@ -20,17 +16,11 @@ export const generateNewKeypair = (): WalletKeys => {
   };
 };
 
-/**
- * Reconstruct a keypair from the private key (stored as array)
- */
 export const reconstructKeypair = (keypairData: number[]): Keypair => {
   const secretKey = new Uint8Array(keypairData);
   return Keypair.fromSecretKey(secretKey);
 };
 
-/**
- * Export wallet data as JSON
- */
 export const exportWalletJSON = (walletKeys: WalletKeys): string => {
   return JSON.stringify(
     {

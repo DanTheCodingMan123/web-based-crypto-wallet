@@ -8,21 +8,15 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 
-// Use devnet for development (free test SOL from faucet)
 const RPC_ENDPOINT =
   process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT || clusterApiUrl("devnet");
 
 export const connection = new Connection(RPC_ENDPOINT, "confirmed");
 
-/**
- * Fetch the SOL balance for a given wallet address
- * Returns balance in SOL (not lamports)
- */
 export const getBalance = async (publicKeyString: string): Promise<number> => {
   try {
     const publicKey = new PublicKey(publicKeyString);
     const balanceLamports = await connection.getBalance(publicKey);
-    // Convert lamports to SOL (1 SOL = 1 billion lamports)
     return balanceLamports / 1e9;
   } catch (error) {
     console.error("Error fetching balance:", error);
@@ -30,9 +24,6 @@ export const getBalance = async (publicKeyString: string): Promise<number> => {
   }
 };
 
-/**
- * Get recent transactions for a wallet
- */
 export const getTransactionHistory = async (
   publicKeyString: string,
   limit: number = 10
@@ -49,23 +40,16 @@ export const getTransactionHistory = async (
   }
 };
 
-/**
- * Send SOL from one wallet to another
- * Returns transaction signature if successful
- */
 export const sendSOL = async (
   senderKeypair: Keypair,
   recipientAddress: string,
   amountSOL: number
 ): Promise<{ success: boolean; signature?: string; error?: string }> => {
   try {
-    // Validate recipient address
     const recipientPublicKey = new PublicKey(recipientAddress);
 
-    // Convert SOL to lamports
     const amountLamports = Math.floor(amountSOL * 1e9);
 
-    // Check sender balance
     const senderBalance = await getBalance(senderKeypair.publicKey.toString());
     if (senderBalance < amountSOL) {
       return {
@@ -76,7 +60,6 @@ export const sendSOL = async (
       };
     }
 
-    // Create transaction
     const transaction = new Transaction().add(
       SystemProgram.transfer({
         fromPubkey: senderKeypair.publicKey,
@@ -85,7 +68,6 @@ export const sendSOL = async (
       })
     );
 
-    // Send and confirm transaction
     const signature = await sendAndConfirmTransaction(
       connection,
       transaction,
@@ -117,9 +99,6 @@ export interface TransactionInfo {
   status: "confirmed" | "failed" | "unknown";
 }
 
-/**
- * Get detailed transaction history with parsed amounts and types
- */
 export const getDetailedTransactionHistory = async (
   publicKeyString: string,
   limit: number = 10
@@ -134,47 +113,42 @@ export const getDetailedTransactionHistory = async (
 
     for (const sig of signatures) {
       try {
-        const tx = await connection.getTransaction(sig.signature, {
+        const parsedTx = await connection.getParsedTransaction(sig.signature, {
           maxSupportedTransactionVersion: 0,
         });
 
-        if (!tx) continue;
+        if (!parsedTx) continue;
 
-        const instructions = tx.transaction.message.instructions;
         let amount = 0;
         let counterparty: string | null = null;
         let type: "sent" | "received" | "unknown" = "unknown";
 
-        // Look for transfer instructions
-        for (const instruction of instructions) {
-          if (
-            instruction.programId.toString() ===
-            "11111111111111111111111111111111"
-          ) {
-            // System program (transfers)
-            const data = instruction.data;
-            if (data.length >= 12) {
-              // Extract amount (at bytes 4-12 for SystemProgram.transfer)
-              amount = Number(data.readBigUInt64LE(4)) / 1e9;
-            }
+        const instructions = parsedTx.transaction.message.instructions || [];
 
-            // Determine if sent or received
-            if (instruction.keys[0]?.pubkey.toString() === publicKeyString) {
-              type = "sent";
-              counterparty = instruction.keys[1]?.pubkey.toString() || null;
-            } else if (
-              instruction.keys[1]?.pubkey.toString() === publicKeyString
-            ) {
-              type = "received";
-              counterparty = instruction.keys[0]?.pubkey.toString() || null;
+        for (const instruction of instructions) {
+          if ("parsed" in instruction && instruction.program === "system") {
+            const parsed = instruction.parsed;
+            if (parsed.type === "transfer") {
+              amount = parsed.info.lamports / 1e9;
+
+              const fromKey = parsed.info.source;
+              const toKey = parsed.info.destination;
+
+              if (fromKey === publicKeyString) {
+                type = "sent";
+                counterparty = toKey || null;
+              } else if (toKey === publicKeyString) {
+                type = "received";
+                counterparty = fromKey || null;
+              }
+              break;
             }
-            break;
           }
         }
 
         transactions.push({
           signature: sig.signature,
-          timestamp: tx.blockTime || null,
+          timestamp: parsedTx.blockTime || null,
           amount,
           type,
           counterparty,
