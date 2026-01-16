@@ -1,40 +1,38 @@
-# web-based-crypto-wallet
+# Crypto Web Wallet
 
-This is a web-based wallet on solana that uses the ed25519 cryptographic algorithm
+This is a web wallet for Solana that I built as a candidate for head of engineering of Cornell Blockchain!
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Installing Dependencies
 
-## Getting Started
+Execute the following in the terminal
 
-First, run the development server:
+```bash
+npm install
+```
+
+## Running the website
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then, open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Implementation notes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Here are a few implementation/design decisions I made:
 
-## Learn More
+- I chose to use a next.js framework for its simple structure and App Router which makes building the frontend much easier.
+- I used a centralized solana connection and rpc config so that all the features would share the same endpoint
+- Another big trade off I made was deciding between using jupiter vs Orca when implementing the trading feature. My experience with Jupiter is that it is much easier to integrate and work with in simple projects, the issue is however the features that I wanted to use would not work on devnet. On the other hand, I was much less familiar with Orca, but I found that it would support devnet swaps. I ended up choosing Orca for this website and accepted a more limited pool selection on devnet.
 
-To learn more about Next.js, take a look at the following resources:
+## Libraries used
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Here are some of the libraries I used:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- App framework: `next`, `react`, `react-dom`, `typescript`
+- Solana: `@solana/web3.js`, `@solana/spl-token`,
+  `@solana/wallet-adapter-react`, `@solana/wallet-adapter-react-ui`
+- Swap/SDKs: `@orca-so/common-sdk`, `@orca-so/whirlpools-sdk`,
+  `@coral-xyz/anchor`, `@project-serum/anchor`
+- Styling: `tailwindcss`, `eslint`
