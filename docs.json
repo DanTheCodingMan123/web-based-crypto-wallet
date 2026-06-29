@@ -15,6 +15,12 @@
             "pages": [
               "index"
             ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "wallet-dashboard"
+            ]
           }
         ]
       }
