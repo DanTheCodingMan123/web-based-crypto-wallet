@@ -1,0 +1,71 @@
+---
+title: "Wallet dashboard"
+description: "View balances, send and receive SOL, and swap SOL for USDC from a single screen."
+---
+
+The wallet dashboard is the main stage for your wallet after you sign in. From a single screen you can monitor live balances, move SOL between addresses, share your public address to receive funds, and swap SOL for USDC on Solana devnet.
+
+## Prerequisites
+
+- A wallet keypair generated through the sign-in flow. The dashboard redirects to the home page if no keypair is loaded.
+- Devnet SOL in the wallet. Fund a new address from the [Solana devnet faucet](https://faucet.solana.com/) before sending or trading.
+
+## Live balances
+
+The dashboard shows two balances side by side:
+
+- **SOL balance** — the native Solana balance for your public address, fetched from the configured RPC endpoint.
+- **USDC balance** — the balance of the devnet USDC token account associated with your address. New wallets show `0.00` until a swap or transfer creates the token account.
+
+Both balances refresh automatically every 15 seconds while the dashboard is open, and they re-fetch immediately after a successful send or trade so the values you see stay current without a manual reload.
+
+## Supported actions
+
+The dashboard exposes four modes from the action panel: **view**, **send**, **receive**, and **trade**. Switching modes keeps your keypair loaded — only the form on screen changes.
+
+### View
+
+The default mode. Use it to monitor balances at a glance. No input is required.
+
+### Send SOL
+
+Use send mode to transfer SOL to another Solana address.
+
+1. Switch the dashboard to **Send**.
+2. Paste the recipient's Solana public address into the **Recipient** field.
+3. Enter the **Amount** of SOL to send. The amount must be greater than `0` and less than or equal to your current SOL balance.
+4. Confirm the transaction. The dashboard signs the transfer with your local keypair, submits it through the configured RPC endpoint, and shows the resulting transaction signature on success.
+
+After the transfer confirms, the form resets, the dashboard returns to view mode, and both balances refresh.
+
+### Receive SOL
+
+Receive mode displays your full Solana public address along with a copy button.
+
+1. Switch the dashboard to **Receive**.
+2. Copy the address with the copy control, or share the shortened preview with the sender.
+3. Wait for the sender's transaction to confirm — the SOL balance updates on the next 15-second refresh.
+
+You do not need to take any other action to receive SOL. Any address holding a keypair on the same Solana cluster can receive transfers.
+
+### Trade SOL for USDC
+
+Trade mode swaps SOL for devnet USDC using the Orca Whirlpools SOL/USDC pool for pricing.
+
+1. Switch the dashboard to **Trade**.
+2. Enter the amount of SOL you want to swap. The amount must be greater than `0` and less than or equal to your current SOL balance.
+3. Wait for the live quote. The dashboard fetches a quote from the Orca Whirlpools pool roughly 500 ms after you stop typing and displays the estimated USDC output before you commit.
+4. Confirm the trade. The dashboard signs and submits the swap with your local keypair and shows the resulting transaction signature on success.
+
+After the swap confirms, the form resets, the dashboard returns to view mode, and both SOL and USDC balances refresh.
+
+## Devnet limitations
+
+The wallet runs against Solana devnet by default, which constrains the trade flow:
+
+- **Single pool.** Quotes and swaps use one hard-coded Orca Whirlpools SOL/USDC pool on devnet. There is no route discovery across multiple pools or aggregators, so liquidity and pricing reflect that single pool only.
+- **Devnet USDC mint.** The dashboard reads and receives USDC at the devnet USDC mint. Devnet USDC has no relationship to mainnet USDC and has no real-world value.
+- **Devnet RPC.** Transactions are submitted through the devnet RPC endpoint. Confirmation times, fees, and reliability differ from mainnet.
+- **Trade direction.** Only SOL → USDC swaps are supported from the dashboard; the reverse direction is not exposed.
+
+Use the dashboard on devnet to explore the flows end to end. Do not treat devnet balances or swap rates as representative of mainnet conditions.
