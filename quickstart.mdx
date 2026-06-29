@@ -1,0 +1,84 @@
+---
+title: "Quickstart"
+description: "Generate a Solana wallet, back it up, and fund it with devnet SOL."
+---
+
+This guide walks you through creating a new Solana wallet in the browser, saving a backup, and funding it with devnet SOL so you can start sending and swapping tokens.
+
+## Prerequisites
+
+- A modern browser (Chrome, Firefox, Safari, or Edge).
+- The Crypto Wallet app running locally or deployed. To run it locally, clone the repo and start the dev server, then open `http://localhost:3000`.
+
+By default the app connects to **Solana devnet**. No mainnet funds are at risk.
+
+## 1. Generate a new wallet
+
+When you load the landing page, you'll see a **Create Your Wallet** screen.
+
+1. Click **Generate Wallet**.
+2. The app generates a fresh ed25519 keypair using Solana's `Keypair.generate()` and stores it in memory for the session.
+
+You're immediately taken to a screen showing your new wallet's public and private keys.
+
+## 2. Copy your public address
+
+Your **public key** is your wallet address — share it freely to receive SOL or tokens.
+
+- Your address appears at the top of the screen in a monospaced box.
+- Click **Copy** under the public key to copy it to your clipboard.
+
+<Tip>
+  Save your public address somewhere convenient — you'll need it to request a devnet airdrop in the next step.
+</Tip>
+
+## 3. Reveal and back up your private key
+
+Your **private key** controls the wallet. Anyone who has it can move your funds.
+
+1. Click **Reveal Private Key** to display the base64-encoded secret.
+2. Click **Copy** to copy it to your clipboard, or store it in a password manager.
+3. Click **Download Wallet** to save a JSON backup file (`solana_wallet_<timestamp>.json`) containing your public key, private key, and an export timestamp.
+
+<Warning>
+  Your private key is shown only in this session and is **not** stored on any server. If you close the tab without backing it up, the key is lost and your wallet cannot be recovered. Never share your private key or commit the backup file to a public repository.
+</Warning>
+
+## 4. Open the dashboard
+
+Click **Go to Dashboard** to leave the wallet creation screen and enter the main app.
+
+The dashboard reads your in-memory keypair and shows:
+
+- Your current SOL balance on devnet.
+- Recent transaction history.
+- Controls for sending SOL and swapping SOL for USDC.
+
+## 5. Fund your wallet with devnet SOL
+
+A brand-new wallet has a zero balance. To start transacting on devnet, request an airdrop from the Solana faucet.
+
+<Steps>
+  <Step title="Open the Solana faucet">
+    Go to [https://faucet.solana.com](https://faucet.solana.com).
+  </Step>
+  <Step title="Paste your public address">
+    Paste the public key you copied in step 2 into the address field.
+  </Step>
+  <Step title="Select devnet and request SOL">
+    Make sure **Devnet** is selected, choose an amount (for example, 1 SOL), and submit the request.
+  </Step>
+  <Step title="Refresh your dashboard">
+    Return to the wallet dashboard. Your balance updates once the airdrop confirms — usually within a few seconds.
+  </Step>
+</Steps>
+
+You can also airdrop from the Solana CLI:
+
+```bash Solana CLI
+solana airdrop 1 <YOUR_PUBLIC_ADDRESS> --url https://api.devnet.solana.com
+```
+
+## Next steps
+
+With a funded devnet wallet, you can now use the dashboard to send SOL to another address or swap SOL for USDC through Orca's devnet pools.

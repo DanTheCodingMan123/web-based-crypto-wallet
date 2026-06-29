@@ -1,0 +1,27 @@
+---
+title: "Crypto Wallet"
+description: "A web-based Solana wallet for creating keypairs, managing SOL, and swapping tokens on devnet."
+---
+
+Crypto Wallet is a browser-based wallet for the Solana blockchain. It generates a brand-new ed25519 keypair in your browser, stores it for the session, and gives you a dashboard to view balances, send SOL, and swap tokens.
+
+By default the app connects to **Solana devnet**, so you can experiment with real on-chain transactions without spending real funds.
+
+## What you can do
+
+- **Create a wallet** — generate a fresh ed25519 keypair, view your public address, reveal your private key, and download a JSON backup.
+- **Fund your wallet** — request a devnet airdrop from the Solana faucet to start transacting.
+- **Manage SOL** — check your balance, view transaction history, and send SOL to any address.
+- **Swap tokens** — get on-chain quotes and trade SOL for USDC using Orca's devnet pools.
+
+<Card title="Quickstart" icon="rocket" href="/quickstart">
+  Create your first wallet and fund it with devnet SOL in under a minute.
+</Card>
+
+## How it works
+
+The wallet runs entirely client-side. Keys are generated in your browser with Solana's `Keypair.generate()` and held in React context for the lifetime of the session — nothing is sent to a server. The dashboard reads the in-memory keypair to fetch your balance, sign transfers, and execute swaps against the configured RPC endpoint.
+
+<Warning>
+  This wallet is built for learning and demonstration on devnet. Do not use it to hold mainnet funds or store keys you cannot afford to lose.
+</Warning>

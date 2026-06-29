@@ -11,9 +11,10 @@
         "product": "Wallet",
         "groups": [
           {
-            "group": "Home",
+            "group": "Get started",
             "pages": [
-              "index"
+              "index",
+              "quickstart"
             ]
           }
         ]
