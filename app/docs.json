@@ -1,0 +1,12 @@
+{
+  "name": "Your Product",
+  "colors": {
+    "primary": "#0D9373"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["index", "quickstart"]
+    }
+  ]
+}
