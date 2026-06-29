@@ -20,7 +20,8 @@
           {
             "group": "Guides",
             "pages": [
-              "wallet-dashboard"
+              "wallet-dashboard",
+              "crypto-wallets-explained.mdx"
             ]
           }
         ]

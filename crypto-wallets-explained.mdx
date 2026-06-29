@@ -1,0 +1,78 @@
+---
+title: "Crypto wallets explained"
+description: "Understand what crypto wallets are, how keys work, and the difference between custodial and non-custodial wallets."
+sidebarTitle: "Crypto wallets explained"
+---
+
+## What is a crypto wallet?
+
+A crypto wallet is software (or hardware) that stores the cryptographic keys used to access and control assets on a blockchain. Despite the name, wallets don't actually hold coins — the coins live on-chain. The wallet holds the **keys** that prove ownership and let you sign transactions.
+
+## Keys and addresses
+
+Every wallet is built on a **keypair**:
+
+- **Public key / address** — a shareable identifier other people use to send you assets. On Solana, this looks like `9xQeWv...A1b2`.
+- **Private key** — a secret value that authorizes spending. Anyone with the private key controls the funds.
+- **Seed phrase** — a human-readable backup (typically 12 or 24 words) that can regenerate the private key. Lose it and you lose access; share it and you lose your funds.
+
+<Warning>
+  Never share your private key or seed phrase. No legitimate service, support agent, or airdrop will ever ask for it.
+</Warning>
+
+## Custodial vs. non-custodial
+
+|  | Custodial | Non-custodial |
+| --- | --- | --- |
+| **Who holds the keys** | A third party (e.g., an exchange) | You |
+| **Recovery** | Password reset via the provider | Seed phrase only |
+| **Trust model** | Trust the custodian | Trust yourself |
+| **Examples** | Coinbase, Binance accounts | Phantom, Solflare, this app |
+
+Non-custodial wallets give you full control, which also means full responsibility for backups.
+
+## Hot vs. cold wallets
+
+- **Hot wallets** are connected to the internet (browser extensions, mobile apps, web wallets). Convenient for daily use and dApp interactions.
+- **Cold wallets** are offline (hardware devices like Ledger, or paper backups). Best for long-term storage of larger balances.
+
+A common pattern: keep a small spending balance in a hot wallet and the rest in cold storage.
+
+## How a transaction works
+
+1. You build a transaction (e.g., "send 1 SOL to address X").
+2. Your wallet **signs** it locally with your private key.
+3. The signed transaction is broadcast to the network.
+4. Validators verify the signature and include it in a block.
+5. The on-chain balances update — irreversibly.
+
+Because transactions are final, double-check the recipient address and amount before signing.
+
+## Networks and tokens
+
+A single wallet address on Solana can hold:
+
+- **SOL** — the native token used for fees and staking.
+- **SPL tokens** — fungible tokens like USDC, BONK, or any project token.
+- **NFTs** — non-fungible tokens, also implemented as SPL tokens.
+
+Most chains also have **testnets** (like Solana devnet) where tokens have no real value, which is perfect for learning and development.
+
+## Staying safe
+
+- Back up your seed phrase offline, in more than one secure location.
+- Verify URLs before connecting your wallet — phishing sites mimic real dApps.
+- Review every transaction prompt; malicious sites can request approvals that drain your wallet.
+- Use a separate "burner" wallet for experimenting with new dApps.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Generate your first Solana wallet and fund it with devnet SOL.
+  </Card>
+
+  <Card title="Wallet dashboard" icon="wallet" href="/wallet-dashboard">
+    Send, receive, and swap from a single screen.
+  </Card>
+</CardGroup>
