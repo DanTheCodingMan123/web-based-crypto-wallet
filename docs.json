@@ -1,12 +1,16 @@
 {
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
   "name": "Crypto Wallet",
   "colors": {
-    "primary": "#0D9373"
+    "primary": "#ff0000"
   },
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": ["index", "quickstart"]
-    }
-  ]
+  "navigation": {
+    "groups": [
+      {
+        "group": "Home",
+        "pages": ["index"]
+      }
+    ]
+  }
 }
