@@ -6,10 +6,17 @@
     "primary": "#ff0000"
   },
   "navigation": {
-    "groups": [
+    "products": [
       {
-        "group": "Home",
-        "pages": ["index"]
+        "product": "Wallet",
+        "groups": [
+          {
+            "group": "Home",
+            "pages": [
+              "index"
+            ]
+          }
+        ]
       }
     ]
   }
